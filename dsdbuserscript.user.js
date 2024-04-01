@@ -14,18 +14,110 @@
 
 var sb_ALL_DATA;
 
-async function getAllData() {
+// Create a loading bar
+const loadingBar = document.createElement('div');
+loadingBar.style.width = '0%';
+loadingBar.style.height = '20px';
+loadingBar.style.backgroundColor = 'green';
+
+// Create a text node
+const loadingText = document.createElement('div');
+loadingText.textContent = 'Daten werden geladen';
+loadingText.style.color = 'white';
+loadingText.style.textAlign = 'center';
+
+// Create a container for the loading text and bar
+const loadingContainer = document.createElement('div');
+loadingContainer.appendChild(loadingText);
+loadingContainer.appendChild(loadingBar);
+
+$("#All_Attacks_wrapper").prepend(loadingContainer);
+
+async function getAllData(pageLink) {
     const data = [];
     const baseUrl = "https://diestaemmedb.de";
     let cache = getLocalStorage() || {};
-    let delay = 0;
-    let counter = 0;
 
     // Check if the cache is more than 5 hours old
     if (cache.timestamp && Date.now() - cache.timestamp > 300 * 60 * 1000) {
         cache = {}; // Clear the cache
     }
 
+    // Fetch the page
+    const response = await fetch(pageLink);
+    const text = await response.text();
+
+    // Process the page
+    const rows = $(text).find("table#All_Attacks tbody tr");
+    for (let i = 0; i < rows.length; i++) {
+        const row = $(rows[i]);
+        const cells = row.find('td');
+
+        const attackType = cells.eq(0).text().trim();
+        const defender = {
+            name: cells.eq(1).text().trim(),
+            profileUrl: baseUrl + cells.eq(1).find('a').attr('href')
+        };
+        const targetVillage = {
+            coordinates: cells.eq(2).text().trim(),
+            infoUrl: baseUrl + cells.eq(2).find('a').attr('href')
+        };
+        const attacker = {
+            name: cells.eq(3).text().trim().substring(0, cells.eq(3).text().trim().lastIndexOf("(")).trim(),
+            playerInfoUrl: baseUrl + cells.eq(3).find('a').first().attr('href'),
+            tribeInfoUrl: baseUrl + cells.eq(3).find('a').last().attr('href')
+        };
+        const attackerTribe = cells.eq(3).text().trim().substring(cells.eq(3).text().trim().lastIndexOf("(") + 1, cells.eq(3).text().trim().lastIndexOf(")"));
+        const originVillage = {
+            coordinates: cells.eq(4).text().trim(),
+            infoUrl: baseUrl + cells.eq(4).find('a').attr('href')
+        };
+        const analysisReason = cells.eq(5).text().trim();
+        const loadedDateTime = parseGermanDate(cells.eq(6).text().trim(), false);
+        const attackCount = {
+            count: parseInt(cells.eq(7).text().trim(), 10),
+            attacksUrl: baseUrl + cells.eq(7).find('a').attr('href')
+        };
+        const analysisResult = cells.eq(8).text().trim();
+        const arrivalDateTime = parseGermanDate(cells.eq(9).text().trim(), true);
+
+        let defenderTribe;
+
+        if (cache[defender.profileUrl]) {
+            defenderTribe = cache[defender.profileUrl];
+        } else {
+            console.log(`Fetching defender tribe for ${defender.name}`);
+            await new Promise(resolve => setTimeout(resolve, delay)); // Delay
+            const response = await fetch(defender.profileUrl);
+            const text = await response.text();
+            const tribeName = $(text).find('#testServer').children('div').eq(1).find('table tr').eq(2).find('td').text().trim();
+            defenderTribe = tribeName;
+            cache[defender.profileUrl] = tribeName;
+            cache.timestamp = Date.now(); // Update the timestamp
+            saveLocalStorage(cache); // Save the cache to local storage
+            delay += 200; // Increase delay for each request by 200 ms
+        }
+
+        data.push({
+            attackType,
+            defender,
+            defenderTribe,
+            targetVillage,
+            attacker,
+            attackerTribe,
+            originVillage,
+            analysisReason,
+            loadedDateTime,
+            attackCount,
+            analysisResult,
+            arrivalDateTime
+        });
+    }
+
+    return data;
+}
+
+async function fetchAllPages() {
     // Get all the page links
     let pageLinks = Array.from($('div#All_Attacks_wrapper').parent().parent().find('div').first().find('a'));
     const lastPageLink = pageLinks.find(a => a.textContent.includes('letzte'));
@@ -39,95 +131,19 @@ async function getAllData() {
         pageLinks.unshift(window.location.href);
     }
 
-    // Fetch all the pages in parallel
-    const pages = [];
-    for (const link of pageLinks) {
-        counter++;
-        console.log(`Fetching page ${counter} of ${pageLinks.length}`)
-        const response = await fetch(link);
-        const text = await response.text();
-        pages.push(text);
+    const allData = [];
+    for (let i = 0; i < pageLinks.length; i++) {
+        const data = await getAllData(pageLinks[i]);
+        allData.push(...data);
+
+        // Update the loading bar
+        loadingBar.style.width = `${(i + 1) / pageLinks.length * 100}%`;
+
         await new Promise(resolve => setTimeout(resolve, 200)); // Delay of 200 ms
     }
 
-    // Process each page
-    for (const page of pages) {
-        const rows = $(page).find("table#All_Attacks tbody tr");
-        for (let i = 0; i < rows.length; i++) {
-            const row = $(rows[i]);
-            const cells = row.find('td');
-
-
-            const attackType = cells.eq(0).text().trim();
-            const defender = {
-                name: cells.eq(1).text().trim(),
-                profileUrl: baseUrl + cells.eq(1).find('a').attr('href')
-            };
-            const targetVillage = {
-                coordinates: cells.eq(2).text().trim(),
-                infoUrl: baseUrl + cells.eq(2).find('a').attr('href')
-            };
-            const attacker = {
-                name: cells.eq(3).text().trim().substring(0, cells.eq(3).text().trim().lastIndexOf("(")).trim(),
-                playerInfoUrl: baseUrl + cells.eq(3).find('a').first().attr('href'),
-                tribeInfoUrl: baseUrl + cells.eq(3).find('a').last().attr('href')
-            };
-            const attackerTribe = cells.eq(3).text().trim().substring(cells.eq(3).text().trim().lastIndexOf("(") + 1, cells.eq(3).text().trim().lastIndexOf(")"));
-            const originVillage = {
-                coordinates: cells.eq(4).text().trim(),
-                infoUrl: baseUrl + cells.eq(4).find('a').attr('href')
-            };
-            const analysisReason = cells.eq(5).text().trim();
-            const loadedDateTime = parseGermanDate(cells.eq(6).text().trim(), false);
-            const attackCount = {
-                count: parseInt(cells.eq(7).text().trim(), 10),
-                attacksUrl: baseUrl + cells.eq(7).find('a').attr('href')
-            };
-            const analysisResult = cells.eq(8).text().trim();
-            const arrivalDateTime = parseGermanDate(cells.eq(9).text().trim(), true);
-
-            let defenderTribe;
-
-            if (cache[defender.profileUrl]) {
-                defenderTribe = cache[defender.profileUrl];
-            } else {
-                console.log(`Fetching defender tribe for ${defender.name}`);
-                await new Promise(resolve => setTimeout(resolve, delay)); // Delay
-                const response = await fetch(defender.profileUrl);
-                const text = await response.text();
-                const tribeName = $(text).find('#testServer').children('div').eq(1).find('table tr').eq(2).find('td').text().trim();
-                defenderTribe = tribeName;
-                cache[defender.profileUrl] = tribeName;
-                cache.timestamp = Date.now(); // Update the timestamp
-                saveLocalStorage(cache); // Save the cache to local storage
-                delay += 200; // Increase delay for each request by 200 ms
-            }
-
-            data.push({
-                attackType,
-                defender,
-                defenderTribe,
-                targetVillage,
-                attacker,
-                attackerTribe,
-                originVillage,
-                analysisReason,
-                loadedDateTime,
-                attackCount,
-                analysisResult,
-                arrivalDateTime
-            });
-        }
-    }
-
-    return data;
+    return allData;
 }
-
-getAllData().then(data => {
-    sb_ALL_DATA = data;
-    console.log(sb_ALL_DATA);
-    createSummaryWindow();
-});
 
 function createSummaryWindow() {
     // Create the summary div with a heading
@@ -152,7 +168,8 @@ function createSummaryWindow() {
     // Create and append a canvas with the id "myChart"
     const chartDiv = $("<div>").css({ width: '50%' }); // Create a div for the chart and set its width to 50%
     dailyIncomingsDiv.append(chartDiv);
-    createDailyIncomingsPieChart(chartDiv);
+    // createDailyIncomingsPieChart(chartDiv);
+    createDailyIncomingsBarChart(chartDiv);
 
     // Button to toggle daily incommings
     const toggleDailyIncomingsButton = $("<button>").text('Incs nach Datum anzeigen/verstecken');
@@ -161,15 +178,21 @@ function createSummaryWindow() {
     const verteidigerTable = createPlayerDataTable("Verteidiger");
     const verteidigerDiv = $("<div>").append(verteidigerTable);
 
-    // Button to toggle the defender table
-    const toggleDefenderButton = $("<button>").text('Incs nach Verteidiger anzeigen/verstecken');
-
     // Create a new div and a table for "Angreifer"
     const angreiferTable = createPlayerDataTable("Angreifer");
     const angreiferDiv = $("<div>").append(angreiferTable);
 
-    // Button to toggle the attacker table
-    const toggleAttackerButton = $("<button>").text('Incs nach Angreifer anzeigen/verstecken');
+    // Create a parent div with a flex layout for the "Verteidiger" and "Angreifer" tables
+    const playerTablesDiv = $("<div>").css({
+        display: 'flex', // Use Flexbox
+        justifyContent: 'space-between', // Distribute items evenly
+    }).append(
+        $("<div>").css({ width: '50%' }).append(verteidigerDiv), // Wrap the "Verteidiger" table in a div and set its width to 50%
+        $("<div>").css({ width: '50%' }).append(angreiferDiv), // Wrap the "Angreifer" table in a div and set its width to 50%
+    );
+
+    // Button to toggle the "Verteidiger" and "Angreifer" tables
+    const togglePlayerTablesButton = $("<button>").text('Incs nach Verteidiger und Angreifer anzeigen/verstecken');
 
     // Button to toggle the incommings matrix
     const toggleMatrixButton = $("<button>").text('Angreifer/Verteidiger Matrix anzeigen/verstecken');
@@ -177,12 +200,10 @@ function createSummaryWindow() {
     // Create a container div and append the above divs to it
     const containerDiv = $("<div>");
     containerDiv.append(toggleDailyIncomingsButton);
-    containerDiv.append(toggleAttackerButton);
-    containerDiv.append(toggleDefenderButton);
+    containerDiv.append(togglePlayerTablesButton);
     containerDiv.append(toggleMatrixButton);
     containerDiv.append(dailyIncomingsDiv);
-    containerDiv.append(verteidigerDiv);
-    containerDiv.append(angreiferDiv);
+    containerDiv.append(playerTablesDiv);
 
     // Add a table for the incommings matrix
     const incMatrixTable = createIncMatrixTable();
@@ -197,8 +218,7 @@ function createSummaryWindow() {
     summaryDiv.children('div').hide();
     incMatrixDiv.hide();
     dailyIncomingsDiv.hide();
-    verteidigerDiv.hide();
-    angreiferDiv.hide();
+    playerTablesDiv.hide();
 
 
     // Define a CSS class for the toggled state
@@ -210,14 +230,9 @@ function createSummaryWindow() {
 `;
     $('<style>').text(toggledStyle).appendTo('head');
     // Add a click event listener to the buttons
-    toggleDefenderButton.click(function (event) {
+    togglePlayerTablesButton.click(function (event) {
         event.preventDefault();
-        verteidigerDiv.toggle();
-        $(this).toggleClass(toggledClass); // Toggle the class
-    });
-    toggleAttackerButton.click(function (event) {
-        event.preventDefault();
-        angreiferDiv.toggle();
+        playerTablesDiv.toggle();
         $(this).toggleClass(toggledClass); // Toggle the class
     });
     toggleDailyIncomingsButton.click(function (event) {
@@ -311,7 +326,85 @@ function createIncMatrixTable() {
     table.append(tableBody);
     return table;
 }
+function createDailyIncomingsBarChart(parentElement) {
+    const data = sb_ALL_DATA;
+    const dailyIncomings = {};
 
+    // Count the number of incommings for each day
+    data.forEach(item => {
+        const arrivalDate = item.arrivalDateTime;
+        const arrivalDay = new Date(arrivalDate.getFullYear(), arrivalDate.getMonth(), arrivalDate.getDate()).getTime(); // Get the day of arrival (ignoring time)
+
+        if (!dailyIncomings[arrivalDay]) {
+            dailyIncomings[arrivalDay] = 0;
+        }
+
+        dailyIncomings[arrivalDay]++;
+    });
+
+    // Prepare the data for the bar chart
+    const labels = Object.keys(dailyIncomings).map(date => formatDate(parseInt(date, 10)));
+    const counts = Object.values(dailyIncomings);
+
+    // Define colors
+    const colors = [
+        '#B30000',
+        '#00B300',
+        '#0000B3',
+        '#B3B300',
+        '#00B3B3',
+        '#B300B3',
+        '#800000',
+        '#008000',
+        '#000080',
+        '#808000',
+        '#008080',
+        '#800080',
+        '#C04000',
+        '#40C000',
+        '#0040C0'
+    ];
+
+    // Create the canvas element and append it to the parent element
+    const canvas = document.createElement('canvas');
+    canvas.width = 450; // Set the width
+    canvas.height = 450; // Set the height
+    canvas.style.width = '450px'; // Set the CSS width
+    canvas.style.height = '450px'; // Set the CSS height
+    parentElement.append(canvas);
+
+    // Create the bar chart
+    const ctx = canvas.getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: counts,
+                backgroundColor: colors, // Set the color of the bars
+                borderColor: '#000080', // Set the color of the bar borders
+                borderWidth: 1 // Set the width of the bar borders
+            }]
+        },
+        options: {
+            responsive: false, // Set responsive to false
+            plugins: {
+                title: {
+                    display: false // Hide the title
+                },
+                legend: {
+                    display: false // Hide the legend
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+// unused for now
 function createDailyIncomingsPieChart(parentElement) {
     const data = sb_ALL_DATA;
     const dailyIncomings = {};
@@ -372,9 +465,11 @@ function createDailyIncomingsPieChart(parentElement) {
         },
         options: {
             responsive: false, // Set responsive to false
-            title: {
-                display: true,
-                text: 'Daily Incomings'
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Daily Incomings'
+                }
             }
         }
     });
@@ -514,3 +609,12 @@ function saveLocalStorage(data) {
     localStorage.setItem("sbDSDBData", JSON.stringify(data));
 }
 
+fetchAllPages().then(data => {
+    sb_ALL_DATA = data;
+    console.log(sb_ALL_DATA);
+
+    // Remove the loading bar
+    loadingContainer.remove();
+
+    createSummaryWindow();
+});
