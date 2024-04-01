@@ -1,147 +1,103 @@
 // ==UserScript==
-// @name         Inc Zusammenfassung 5- beste Version bisher
+// @name         Inc Zusammenfassung
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  Fügt eine Zusammenfassung unterhalb der Headline ein
-// @author       You
+// @author       Canan, SaveBank
 // @match        https://diestaemmedb.de/pages/attacks/attacks.php*
 // @grant        none
 // ==/UserScript==
 
-// Event-Listener für die Taste "i" hinzufügen
-document.addEventListener("keydown", function (event) {
-    if (event.key === 'i') {
-        console.log("Taste 'i' wurde gedrückt.");
-        createSummaryWindow();
-    } else if (event.key === 'Escape') {
-        console.log("Taste 'Esc' wurde gedrückt.");
-        const summaryDiv = document.getElementById("summaryDiv");
-        if (summaryDiv) {
-            document.body.removeChild(summaryDiv);
-        }
-    }
-});
 
-// Funktion zum Erstellen des Zusammenfassungsfensters
 function createSummaryWindow() {
-    const createTable = (header) => {
-        const table = document.createElement("table");
-        table.setAttribute("class", "summary-table");
-        table.style.borderCollapse = "collapse";
-        table.style.marginBottom = "100px"; // Abstand zur nächsten Tabelle
-        table.style.width = "auto"; // Breite automatisch anpassen
-        table.style.border = "1px solid white"; // Rahmen um die Tabelle
-        table.style.color = "#ffffff"; // Textfarbe
+    // Create the summary div with a heading
+    const summaryDiv = $("<div>").append($("<h3>").text('Inc Übersicht'));
+    summaryDiv.attr("id", "summaryDiv");
+    summaryDiv.addClass("row");
 
-        const tableHeader = table.createTHead();
-        const headerRow = tableHeader.insertRow();
-        const headerCell = headerRow.insertCell();
-        headerCell.textContent = header;
-        headerCell.style.fontWeight = "bold"; // Fetter Text für Überschrift
-        headerCell.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-        headerCell.style.border = "1px solid white"; // Innere Linien/Ränder
+    // Create a button
+    const toggleButton = $("<button>").text('Übersicht anzeigen/verstecken');
 
-        const sumCell = headerRow.insertCell();
-        sumCell.textContent = `Anzahl`;
-        sumCell.style.fontWeight = "bold";
-        sumCell.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-        sumCell.style.border = "1px solid white"; // Innere Linien/Ränder
 
-        const tableBody = table.createTBody();
-        const namesCount = {};
-        let totalCount = 0;
-        document.querySelectorAll("table#All_Attacks tbody tr").forEach(row => {
-            const name = header === "Verteidiger" ? row.cells[1].textContent.trim() : row.cells[3].textContent.trim();
-            namesCount[name] = (namesCount[name] || 0) + 1;
-            totalCount++;
-        });
+    // Add a click event listener to the button
+    toggleButton.click(function (event) {
+        event.preventDefault();
+        summaryDiv.children('div').toggle(); // Toggle the visibility of the divs inside the summaryDiv
+    });
 
-        // Sortiere die Zeilen absteigend nach den Werten in der Spalte Anzahl
-        const sortedNames = Object.keys(namesCount).sort((a, b) => namesCount[b] - namesCount[a]);
-        sortedNames.forEach(name => {
-            const rowElement = tableBody.insertRow();
-            const nameCell = rowElement.insertCell();
-            nameCell.textContent = name;
-            nameCell.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-            nameCell.style.border = "1px solid white"; // Innere Linien/Ränder
-            const countCell = rowElement.insertCell();
-            countCell.textContent = namesCount[name];
-            countCell.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-            countCell.style.border = "1px solid white"; // Innere Linien/Ränder
-        });
+    summaryDiv.append(toggleButton);
 
-        const sumRow = tableBody.insertRow();
-        sumRow.style.fontWeight = "bold";
-        const sumCellName = sumRow.insertCell();
-        sumCellName.textContent = "Incs Gesamt:";
-        sumCellName.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-        sumCellName.style.border = "1px solid white"; // Innere Linien/Ränder
-        const sumCellCount = sumRow.insertCell();
-        sumCellCount.textContent = totalCount;
-        sumCellCount.style.padding = "10px"; // Kleiner Abstand an den Tabellenrändern
-        sumCellCount.style.border = "1px solid white"; // Innere Linien/Ränder
+    summaryDiv.attr("id", "summaryDiv");
+    summaryDiv.addClass("row");
 
-        return table;
-    };
+    // Create a new div and a table for "Verteidiger"
+    const verteidigerTable = createTable("Verteidiger");
+    const verteidigerDiv = $("<div>").append(verteidigerTable);
 
-    const summaryDiv = document.createElement("div");
-    summaryDiv.setAttribute("id", "summaryDiv");
-    summaryDiv.style.position = "fixed";
-    summaryDiv.style.top = "50%";
-    summaryDiv.style.left = "50%";
-    summaryDiv.style.transform = "translate(-50%, -50%)"; // Zentrierung
-    summaryDiv.style.backgroundColor = "#212428"; // Hintergrundfarbe
-    summaryDiv.style.padding = "20px";
-    summaryDiv.style.border = "1px solid white"; // Rahmen um den Container
-    summaryDiv.style.zIndex = "9999";
-    summaryDiv.style.color = "#ffffff"; // Textfarbe
-    summaryDiv.style.width = "auto"; // Breite automatisch anpassen
-    summaryDiv.style.boxSizing = "border-box";
-    summaryDiv.style.marginLeft = "50px"; // Abstand zur linken Seite
-    summaryDiv.style.marginRight = "50px"; // Abstand zur rechten Seite
+    // Create a new div and a table for "Angreifer"
+    const angreiferTable = createTable("Angreifer");
+    const angreiferDiv = $("<div>").append(angreiferTable);
 
-    const closeButton = document.createElement("span");
-    closeButton.textContent = "X";
-    closeButton.style.position = "absolute";
-    closeButton.style.top = "5px";
-    closeButton.style.right = "5px";
-    closeButton.style.cursor = "pointer";
-    closeButton.style.fontWeight = "bold"; // Fetter Text für Schließen-Symbol
-    closeButton.onclick = function () {
-        document.body.removeChild(summaryDiv);
-    };
-    summaryDiv.appendChild(closeButton);
+    // Create a container div and append the above divs to it
+    const containerDiv = $("<div>");
+    containerDiv.append(verteidigerDiv);
+    containerDiv.append(angreiferDiv);
 
-    const summaryHeading = document.createElement("h3");
-    summaryHeading.innerHTML = "<div style='text-align: center; font-weight: bold; margin-bottom: 100px; border-bottom: 1px solid white;'>Inc Übersicht</div>";
-    summaryDiv.appendChild(summaryHeading);
+    // Append the container div to the summary div
+    summaryDiv.append(containerDiv);
 
-    const containerDiv = document.createElement("div");
-    containerDiv.style.display = "flex";
-    containerDiv.style.justifyContent = "space-between"; // Gleicher Platz zwischen den Tabellen
-    containerDiv.appendChild(createTable("Verteidiger"));
-    const spacer = document.createElement("div");
-    spacer.style.width = "100px"; // Abstand zwischen den Tabellen
-    containerDiv.appendChild(spacer);
-    containerDiv.appendChild(createTable("Angreifer"));
-    summaryDiv.appendChild(containerDiv);
+    // Hide the divs inside the summary div
+    summaryDiv.children('div').hide();
 
-    // Incs Gesamt unterhalb der Tabellen hinzufügen
-    const totalIncDiv = document.createElement("div");
-    totalIncDiv.textContent = "Incs Gesamt: " + getTotalIncCount();
-    totalIncDiv.style.textAlign = "center";
-    totalIncDiv.style.marginTop = "20px";
-    totalIncDiv.style.fontWeight = "bold";
-    summaryDiv.appendChild(totalIncDiv);
-
-    document.body.appendChild(summaryDiv);
+    // Prepend the summary div to the wrapper div
+    $("#All_Attacks_wrapper").prepend(summaryDiv);
 }
 
-// Funktion zur Berechnung der Gesamtzahl der Incs
-function getTotalIncCount() {
+function createTable(header) {
+    // Create the table and add classes
+    const table = $("<table>").addClass("summary-table table table-dark dataTable no-footer");
+
+    // Create the table header
+    const tableHeader = $("<thead>");
+    const headerRow = $("<tr>");
+    const headerCell = $("<th>").text(header);
+    const sumCell = $("<th>").text('Anzahl');
+    headerRow.append(headerCell, sumCell);
+    tableHeader.append(headerRow);
+    table.append(tableHeader);
+
+    // Create the table body
+    const tableBody = $("<tbody>");
+    const namesCount = {};
     let totalCount = 0;
-    document.querySelectorAll("table#All_Attacks tbody tr").forEach(row => {
+
+    // Populate the table body
+    $("table#All_Attacks tbody tr").each(function () {
+        const name = header === "Verteidiger" ? $(this).find('td').eq(1).text().trim() : $(this).find('td').eq(3).text().trim();
+        namesCount[name] = (namesCount[name] || 0) + 1;
         totalCount++;
     });
-    return totalCount;
+
+    // Sort the rows in descending order by the values in the 'Anzahl' column
+    const sortedNames = Object.keys(namesCount).sort((a, b) => namesCount[b] - namesCount[a]);
+    sortedNames.forEach(name => {
+        const rowElement = $("<tr>");
+        const nameCell = $("<td>").text(name);
+        const countCell = $("<td>").text(namesCount[name]);
+        rowElement.append(nameCell, countCell);
+        tableBody.append(rowElement);
+    });
+
+    // Add a row for the total count
+    const sumRow = $("<tr>").css("font-weight", "bold");
+    const sumCellName = $("<td>").text("Incs Gesamt:");
+    const sumCellCount = $("<td>").text(totalCount);
+    sumRow.append(sumCellName, sumCellCount);
+    tableBody.append(sumRow);
+
+    // Append the table body to the table
+    table.append(tableBody);
+
+    return table;
 }
+createSummaryWindow();
