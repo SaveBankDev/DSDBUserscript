@@ -3,7 +3,7 @@
 // @namespace    https://diestaemmedb.de
 // @version      0.2
 // @description  Erstellt eine Übersicht für Incs auf der Angriffe-Seite
-// @author       SaveBank, Canan
+// @author       SaveBank
 // @match        https://diestaemmedb.de/pages/attacks/attacks.php*
 // @grant        none
 // ==/UserScript==
@@ -21,8 +21,8 @@ async function getAllData() {
     let delay = 0;
     let counter = 0;
 
-    // Check if the cache is more than an hour old
-    if (cache.timestamp && Date.now() - cache.timestamp > 60 * 60 * 1000) {
+    // Check if the cache is more than 5 hours old
+    if (cache.timestamp && Date.now() - cache.timestamp > 300 * 60 * 1000) {
         cache = {}; // Clear the cache
     }
 
@@ -47,7 +47,7 @@ async function getAllData() {
         const response = await fetch(link);
         const text = await response.text();
         pages.push(text);
-        await new Promise(resolve => setTimeout(resolve, 200)); // Delay of 150 ms
+        await new Promise(resolve => setTimeout(resolve, 200)); // Delay of 200 ms
     }
 
     // Process each page
@@ -200,26 +200,40 @@ function createSummaryWindow() {
     verteidigerDiv.hide();
     angreiferDiv.hide();
 
+
+    // Define a CSS class for the toggled state
+    const toggledClass = 'toggled';
+    const toggledStyle = `
+    .${toggledClass} {
+        background-color: #BEBEBE; // Slightly darker grey
+    }
+`;
+    $('<style>').text(toggledStyle).appendTo('head');
     // Add a click event listener to the buttons
     toggleDefenderButton.click(function (event) {
         event.preventDefault();
         verteidigerDiv.toggle();
+        $(this).toggleClass(toggledClass); // Toggle the class
     });
     toggleAttackerButton.click(function (event) {
         event.preventDefault();
         angreiferDiv.toggle();
+        $(this).toggleClass(toggledClass); // Toggle the class
     });
     toggleDailyIncomingsButton.click(function (event) {
         event.preventDefault();
         dailyIncomingsDiv.toggle();
+        $(this).toggleClass(toggledClass); // Toggle the class
     });
     toggleButton.click(function (event) {
         event.preventDefault();
         summaryDiv.children('div').toggle(); // Toggle the visibility of the divs inside the summaryDiv
+        $(this).toggleClass(toggledClass); // Toggle the class
     });
     toggleMatrixButton.click(function (event) {
         event.preventDefault();
         incMatrixDiv.toggle();
+        $(this).toggleClass(toggledClass); // Toggle the class
     });
     // Prepend the summary div to the wrapper div
     $("#All_Attacks_wrapper").prepend(summaryDiv);
@@ -320,8 +334,10 @@ function createDailyIncomingsPieChart(parentElement) {
 
     // Create the canvas element and append it to the parent element
     const canvas = document.createElement('canvas');
-    canvas.width = 100; // Set the width
-    canvas.height = 100; // Set the height
+    canvas.width = 450; // Set the width
+    canvas.height = 450; // Set the height
+    canvas.style.width = '450px'; // Set the CSS width
+    canvas.style.height = '450px'; // Set the CSS height
     parentElement.append(canvas);
 
     // Define 15 colors
@@ -355,7 +371,7 @@ function createDailyIncomingsPieChart(parentElement) {
             }]
         },
         options: {
-            responsive: true,
+            responsive: false, // Set responsive to false
             title: {
                 display: true,
                 text: 'Daily Incomings'
