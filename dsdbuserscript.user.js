@@ -1,15 +1,7 @@
-// ==UserScript==
-// @name         Inc Übersicht
-// @namespace    https://diestaemmedb.de
-// @version      0.2
-// @description  Erstellt eine Übersicht für Incs auf der Angriffe-Seite
-// @author       SaveBank
-// @match        https://diestaemmedb.de/pages/attacks/attacks.php*
-// @grant        none
-// ==/UserScript==
+
 
 // Install link:
-// https://dl.dropboxusercontent.com/scl/fi/bad38r528gyv9bzsdkkff/dsdbuserscript.user.js?rlkey=9lrpcd2kmry1au6osvy3yfsel&dl=0
+// https://cdn.jsdelivr.net/gh/SaveBankDev/DSDBUserscript@main/dsdbuserscript.user.js
 
 
 var sb_ALL_DATA;
