@@ -39,7 +39,7 @@ async function getAllData(pageLink) {
     let cache = getLocalStorage() || {};
 
     // Check if the cache is more than 5 hours old
-    if (cache.timestamp && Date.now() - cache.timestamp > 300 * 60 * 1000) {
+    if (cache.timestamp && Date.now() - cache.timestamp > 900 * 60 * 1000) {
         cache = {}; // Clear the cache
     }
 
@@ -87,7 +87,7 @@ async function getAllData(pageLink) {
             defenderTribe = cache[defender.profileUrl];
         } else {
             console.log(`Fetching defender tribe for ${defender.name}`);
-            await new Promise(resolve => setTimeout(resolve, delay)); // Delay
+            await new Promise(resolve => setTimeout(resolve, 200)); // Delay
             const response = await fetch(defender.profileUrl);
             const text = await response.text();
             const tribeName = $(text).find('#testServer').children('div').eq(1).find('table tr').eq(2).find('td').text().trim();
@@ -95,7 +95,6 @@ async function getAllData(pageLink) {
             cache[defender.profileUrl] = tribeName;
             cache.timestamp = Date.now(); // Update the timestamp
             saveLocalStorage(cache); // Save the cache to local storage
-            delay += 200; // Increase delay for each request by 200 ms
         }
 
         data.push({
