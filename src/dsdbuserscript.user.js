@@ -1,9 +1,4 @@
 
-
-// Install link:
-// https://cdn.jsdelivr.net/gh/SaveBankDev/DSDBUserscript@main/dsdbuserscript.user.js
-
-
 var sb_ALL_DATA;
 
 // Create a loading bar
