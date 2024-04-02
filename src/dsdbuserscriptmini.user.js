@@ -8,4 +8,4 @@
 // @grant        none
 // ==/UserScript==
 
-$.getScript('https://cdn.jsdelivr.net/gh/SaveBankDev/DSDBUserscript@main/dsdbuserscript.user.js');
+$.getScript('https://cdn.jsdelivr.net/gh/SaveBankDev/DSDBUserscript@main/src/dsdbuserscript.user.js');
