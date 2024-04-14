@@ -110,8 +110,7 @@ async function fetchAllPages() {
 
     if (lastPageLink) {
         const lastPageNumber = parseInt(new URLSearchParams(lastPageLink.href.split('?')[1]).get('seite'));
-        const pageSize = new URLSearchParams(window.location.search).get('AnzahlproSeite');
-        pageLinks = Array.from({ length: lastPageNumber }, (_, i) => `?seite=${i + 1}&AnzahlproSeite=${pageSize}`);
+        pageLinks = Array.from({ length: lastPageNumber }, (_, i) => `?seite=${i + 1}&AnzahlproSeite=2000`);
     } else {
         pageLinks = pageLinks.map(a => a.href);
         pageLinks.unshift(window.location.href);
