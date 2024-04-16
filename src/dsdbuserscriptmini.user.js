@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         DB Inc Übersicht
 // @namespace    https://diestaemmedb.de
-// @version      0.2
+// @version      0.3
 // @description  Erstellt eine Übersicht für Incs auf der Angriffe-Seite in der Datenbank
 // @author       SaveBank
 // @match        https://diestaemmedb.de/pages/attacks/attacks.php*
